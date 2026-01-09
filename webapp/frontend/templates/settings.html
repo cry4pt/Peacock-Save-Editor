@@ -1,0 +1,405 @@
+{% extends "index.html" %}
+
+{% block header_title %}Settings{% endblock %}
+
+{% block content %}
+<div x-data="settingsPage()" x-init="init()" class="max-w-4xl">
+    <!-- Settings Header -->
+    <div class="card mb-6">
+        <h2 class="text-2xl font-bold text-gradient mb-2">Settings</h2>
+        <p class="text-gray-400 text-sm">Configure your Peacock Ultimate Unlocker</p>
+    </div>
+
+    <!-- Peacock Path -->
+    <div class="card mb-6">
+        <h3 class="text-xl font-semibold mb-4 flex items-center">
+            <i class="fas fa-folder mr-2 text-peacock-400"></i>
+            Peacock Installation
+        </h3>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">Peacock Folder Path</label>
+            <div class="flex space-x-2">
+                <input type="text" :value="status.peacock_path || 'Not detected'" class="input flex-1" readonly>
+                <button @click="refreshStatus()" class="btn-secondary px-4">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            <p class="text-xs mt-2" :class="status.peacock_detected ? 'text-green-400' : 'text-red-400'">
+                <i class="mr-1" :class="status.peacock_detected ? 'fas fa-check-circle' : 'fas fa-times-circle'"></i>
+                <span x-text="status.peacock_detected ? 'Peacock installation detected' : 'Peacock not found'"></span>
+            </p>
+        </div>
+
+        <!-- Profile Info -->
+        <div class="mt-4 pt-4 border-t border-gray-700/50">
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <span class="text-gray-400">Profiles Found:</span>
+                    <span class="text-white font-semibold ml-2" x-text="status.profiles_count || 0"></span>
+                </div>
+                <div>
+                    <span class="text-gray-400">Locations Loaded:</span>
+                    <span class="text-white font-semibold ml-2" x-text="status.locations_count || 0"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Options.ini Configuration -->
+    <div class="card mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-semibold flex items-center">
+                <i class="fas fa-sliders-h mr-2 text-peacock-400"></i>
+                Peacock Options
+            </h3>
+            <button @click="configureOptions()" class="btn-primary text-sm py-2">
+                <i class="fas fa-magic mr-2"></i>
+                Apply Optimal Settings
+            </button>
+        </div>
+
+        <p class="text-sm text-gray-400 mb-4">Current options.ini settings (read-only view)</p>
+
+        <div class="space-y-3">
+            <template x-for="(value, key) in options" :key="key">
+                <div class="flex items-center justify-between py-2 border-b border-gray-700/50">
+                    <span class="text-sm font-mono" x-text="key"></span>
+                    <span class="text-sm font-mono"
+                          :class="value === 'true' ? 'text-green-400' : (value === 'false' ? 'text-red-400' : 'text-peacock-400')"
+                          x-text="value"></span>
+                </div>
+            </template>
+        </div>
+
+        <div x-show="!optionsExists" class="text-center py-4 text-gray-400">
+            <i class="fas fa-info-circle mr-2"></i>
+            options.ini not found. Click "Apply Optimal Settings" to create it.
+        </div>
+    </div>
+
+    <!-- Backup Management -->
+    <div class="card mb-6">
+        <h3 class="text-xl font-semibold mb-4 flex items-center">
+            <i class="fas fa-database mr-2 text-peacock-400"></i>
+            Backups
+        </h3>
+
+        <!-- Loading -->
+        <div x-show="loadingBackups" class="text-center py-4">
+            <i class="fas fa-spinner fa-spin text-peacock-400"></i>
+        </div>
+
+        <!-- Backup List -->
+        <div x-show="!loadingBackups" class="space-y-3 mb-4 max-h-64 overflow-y-auto">
+            <template x-for="backup in backups" :key="backup.file">
+                <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-file-archive text-peacock-400"></i>
+                        <div>
+                            <p class="text-sm font-medium" x-text="backup.file"></p>
+                            <p class="text-xs text-gray-400" x-text="formatDate(backup.modified)"></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs text-gray-400" x-text="formatSize(backup.size)"></span>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <div x-show="!loadingBackups && backups.length === 0" class="text-center py-4 text-gray-400">
+            <i class="fas fa-info-circle mr-2"></i>
+            No backups found
+        </div>
+
+        <div class="flex justify-between pt-4 border-t border-gray-700/50">
+            <button @click="restoreBackup()" class="btn-secondary" :disabled="backups.length === 0">
+                <i class="fas fa-undo mr-2"></i>
+                Restore Latest
+            </button>
+            <button @click="createBackup()" class="btn-secondary">
+                <i class="fas fa-save mr-2"></i>
+                Create Backup Now
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card mb-6">
+        <h3 class="text-xl font-semibold mb-4 flex items-center">
+            <i class="fas fa-bolt mr-2 text-peacock-400"></i>
+            Quick Actions
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button @click="unlockEverything()" class="btn-primary py-4">
+                <i class="fas fa-rocket mr-2"></i>
+                Unlock Everything
+            </button>
+            <button @click="unlockChallenges()" class="btn-secondary py-4">
+                <i class="fas fa-trophy mr-2"></i>
+                All Challenges
+            </button>
+            <button @click="unlockLocations()" class="btn-secondary py-4">
+                <i class="fas fa-map-marked-alt mr-2"></i>
+                Max All Mastery
+            </button>
+            <button @click="unlockEscalations()" class="btn-secondary py-4">
+                <i class="fas fa-layer-group mr-2"></i>
+                All Escalations
+            </button>
+        </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="card border-red-500/30 bg-red-500/5">
+        <h3 class="text-xl font-semibold mb-4 flex items-center text-red-400">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            Danger Zone
+        </h3>
+
+        <div class="space-y-3">
+            <div class="flex items-center justify-between py-3 border-b border-red-500/20">
+                <div>
+                    <label class="font-medium text-red-400">Restore All Profiles</label>
+                    <p class="text-sm text-gray-400">Revert all profiles to their latest backups</p>
+                </div>
+                <button @click="restoreAllBackups()" class="btn-danger">
+                    <i class="fas fa-undo mr-2"></i>Restore
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- About -->
+    <div class="card mt-6">
+        <h3 class="text-xl font-semibold mb-4">About</h3>
+        <div class="space-y-2 text-sm text-gray-400">
+            <p><strong class="text-white">Version:</strong> 1.0.0</p>
+            <p><strong class="text-white">Backend:</strong> FastAPI + Python</p>
+            <p><strong class="text-white">Frontend:</strong> HTMX + Alpine.js + Tailwind CSS</p>
+            <p><strong class="text-white">CLI Tool:</strong> Peacock Ultimate Unlocker</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function settingsPage() {
+    return {
+        status: {
+            peacock_detected: false,
+            peacock_path: null,
+            profiles_count: 0,
+            locations_count: 0
+        },
+        options: {},
+        optionsExists: false,
+        backups: [],
+        loadingBackups: true,
+
+        async init() {
+            await Promise.all([
+                this.loadStatus(),
+                this.loadOptions(),
+                this.loadBackups()
+            ]);
+        },
+
+        async loadStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                if (data.status === 'success') {
+                    this.status = data;
+                }
+            } catch (error) {
+                console.error('Error loading status:', error);
+            }
+        },
+
+        async refreshStatus() {
+            await this.loadStatus();
+            toast.info('Status refreshed');
+        },
+
+        async loadOptions() {
+            try {
+                const response = await fetch('/api/options');
+                const data = await response.json();
+                if (data.status === 'success') {
+                    this.options = data.options;
+                    this.optionsExists = data.exists;
+                }
+            } catch (error) {
+                console.error('Error loading options:', error);
+            }
+        },
+
+        async loadBackups() {
+            this.loadingBackups = true;
+            try {
+                const response = await fetch('/api/backups');
+                const data = await response.json();
+                if (data.status === 'success') {
+                    this.backups = data.backups;
+                }
+            } catch (error) {
+                console.error('Error loading backups:', error);
+            }
+            this.loadingBackups = false;
+        },
+
+        async configureOptions() {
+            try {
+                const response = await fetch('/api/options/configure', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    toast.success(data.message);
+                    await this.loadOptions();
+                } else {
+                    toast.error(data.message || 'Failed to configure options');
+                }
+            } catch (error) {
+                toast.error('Failed to configure options');
+            }
+        },
+
+        async createBackup() {
+            try {
+                const response = await fetch('/api/backup/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    toast.success(data.message);
+                    await this.loadBackups();
+                } else {
+                    toast.error(data.message || 'Failed to create backup');
+                }
+            } catch (error) {
+                toast.error('Failed to create backup');
+            }
+        },
+
+        async restoreBackup() {
+            if (!confirm('Restore the latest backup for all profiles?')) return;
+
+            try {
+                const response = await fetch('/api/backup/restore', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    toast.success(data.message);
+                } else {
+                    toast.error(data.message || 'Failed to restore backup');
+                }
+            } catch (error) {
+                toast.error('Failed to restore backup');
+            }
+        },
+
+        async restoreAllBackups() {
+            if (!confirm('This will restore ALL profiles to their latest backups. Continue?')) return;
+
+            await this.restoreBackup();
+        },
+
+        async unlockEverything() {
+            try {
+                const response = await fetch('/api/unlock/all', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    toast.success(data.message);
+                } else {
+                    toast.error(data.message || 'Failed to unlock');
+                }
+            } catch (error) {
+                toast.error('Failed to unlock everything');
+            }
+        },
+
+        async unlockChallenges() {
+            try {
+                const response = await fetch('/api/unlock/challenges', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_type: 'challenges', items: [] })
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    toast.success(data.message);
+                } else {
+                    toast.error(data.message || 'Failed to unlock challenges');
+                }
+            } catch (error) {
+                toast.error('Failed to unlock challenges');
+            }
+        },
+
+        async unlockLocations() {
+            try {
+                const response = await fetch('/api/unlock/locations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_type: 'locations', items: [] })
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    toast.success(data.message);
+                } else {
+                    toast.error(data.message || 'Failed to max locations');
+                }
+            } catch (error) {
+                toast.error('Failed to max locations');
+            }
+        },
+
+        async unlockEscalations() {
+            try {
+                const response = await fetch('/api/unlock/escalations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_type: 'escalations', items: [] })
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    toast.success(data.message);
+                } else {
+                    toast.error(data.message || 'Failed to unlock escalations');
+                }
+            } catch (error) {
+                toast.error('Failed to unlock escalations');
+            }
+        },
+
+        formatDate(timestamp) {
+            return new Date(timestamp * 1000).toLocaleString();
+        },
+
+        formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+    }
+}
+</script>
+{% endblock %}

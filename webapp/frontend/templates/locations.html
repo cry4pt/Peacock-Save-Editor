@@ -1,0 +1,402 @@
+{% extends "index.html" %}
+
+{% block header_title %}Locations{% endblock %}
+
+{% block content %}
+<div x-data="locationsPage()" x-init="init()">
+    <!-- Header -->
+    <div class="card mb-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-2xl font-bold text-gradient">Locations</h2>
+                <p class="text-gray-400 text-sm mt-1">Manage location mastery levels</p>
+            </div>
+            <div class="flex items-center space-x-3">
+                <span class="badge badge-info" x-text="`${total} Locations`"></span>
+                <button
+                    @click="maxAllLocations()"
+                    :disabled="loading"
+                    class="btn-primary">
+                    <i class="fas fa-star mr-2"></i>
+                    Max All Mastery
+                </button>
+            </div>
+        </div>
+
+        <!-- Custom Level Selector -->
+        <div class="flex items-center space-x-4 p-4 bg-gray-800/50 rounded-lg flex-wrap gap-4">
+            <label class="text-sm font-medium">Set Custom Level:</label>
+            <input
+                type="range"
+                x-model="customLevel"
+                min="1"
+                max="20"
+                class="flex-1 min-w-[200px]">
+            <span class="text-peacock-400 font-bold text-lg w-16 text-center" x-text="customLevel"></span>
+            <button
+                @click="applyCustomLevel()"
+                class="btn-secondary text-sm py-2">
+                Apply to All
+            </button>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div class="card mb-6">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input
+                type="search"
+                x-model="searchQuery"
+                @input.debounce.300ms="search()"
+                placeholder="Search locations... (e.g., 'paris', 'dubai')"
+                class="input">
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div x-show="loading" class="text-center py-12">
+        <i class="fas fa-spinner fa-spin text-4xl text-peacock-400 mb-4"></i>
+        <p class="text-gray-400">Loading locations...</p>
+    </div>
+
+    <!-- Selected Items Bar -->
+    <div x-show="selectedItems.length > 0"
+         x-transition
+         class="card mb-6 bg-peacock-500/10 border-peacock-500/30">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+            <span class="text-sm">
+                <i class="fas fa-check-circle text-peacock-400 mr-2"></i>
+                <span x-text="selectedItems.length"></span> location(s) selected
+            </span>
+            <div class="flex items-center space-x-3">
+                <button
+                    @click="selectedItems = []"
+                    class="btn-secondary text-sm py-2">
+                    Clear Selection
+                </button>
+                <button
+                    @click="maxSelectedLocations()"
+                    class="btn-primary text-sm py-2">
+                    <i class="fas fa-star mr-2"></i>
+                    Max Selected
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Locations Grid -->
+    <div x-show="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <template x-for="location in locations" :key="location.id">
+            <div class="card group" @click="toggleSelect(location.id)">
+                <div class="mb-4">
+                    <!-- Location Icon -->
+                    <div class="aspect-video bg-gradient-to-br rounded-lg mb-3 flex items-center justify-center"
+                         :class="getLocationGradient(location.name)">
+                        <i class="text-5xl opacity-50" :class="getLocationIcon(location.name)"></i>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <input
+                                type="checkbox"
+                                class="w-5 h-5 rounded border-gray-600 text-peacock-500 focus:ring-peacock-500"
+                                :checked="selectedItems.includes(location.id)"
+                                @click.stop="toggleSelect(location.id)">
+                            <div>
+                                <h3 class="text-lg font-bold" x-text="location.name.split(' - ')[0]"></h3>
+                                <p class="text-xs text-gray-400" x-text="location.name.split(' - ')[1] || ''"></p>
+                            </div>
+                        </div>
+                        <span class="badge badge-warning" x-text="`Max ${location.max_level}`"></span>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="mb-4">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 100%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400 mt-1">
+                        <span>0 XP</span>
+                        <span x-text="`${location.max_xp.toLocaleString()} XP`"></span>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button
+                        @click.stop="maxLocation(location.id)"
+                        class="btn-primary flex-1 text-sm py-2">
+                        <i class="fas fa-star mr-2"></i>Max Level
+                    </button>
+                    <button
+                        @click.stop="openCustomLevelModal(location)"
+                        class="btn-secondary text-sm py-2 px-3">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <!-- Empty State -->
+    <div x-show="!loading && locations.length === 0" class="text-center py-12">
+        <i class="fas fa-map-marked-alt text-4xl text-gray-600 mb-4"></i>
+        <p class="text-gray-400">No locations found</p>
+        <p class="text-sm text-gray-500 mt-2" x-show="searchQuery">Try a different search term</p>
+    </div>
+
+    <!-- Custom Level Modal -->
+    <div x-show="showModal"
+         x-transition
+         @click.away="showModal = false"
+         class="modal-overlay"
+         style="display: none;">
+        <div class="modal p-8" @click.stop>
+            <h3 class="text-2xl font-bold mb-4">Set Custom Level</h3>
+            <p class="text-gray-400 mb-2" x-text="modalLocation ? modalLocation.name : ''"></p>
+            <p class="text-sm text-gray-500 mb-6">Choose a specific mastery level for this location</p>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-3">Mastery Level</label>
+                <input
+                    type="range"
+                    x-model="modalLevel"
+                    min="1"
+                    :max="modalLocation ? modalLocation.max_level : 20"
+                    class="w-full">
+                <div class="flex justify-between text-sm text-gray-400 mt-2">
+                    <span>Level 1</span>
+                    <span class="text-peacock-400 font-bold text-xl" x-text="`Level ${modalLevel}`"></span>
+                    <span x-text="`Level ${modalLocation ? modalLocation.max_level : 20}`"></span>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-4">
+                <button @click="showModal = false" class="btn-secondary">
+                    Cancel
+                </button>
+                <button
+                    @click="applyModalLevel()"
+                    class="btn-primary">
+                    Apply Level
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function locationsPage() {
+    return {
+        locations: [],
+        total: 0,
+        loading: true,
+        searchQuery: '',
+        customLevel: 20,
+        selectedItems: [],
+        showModal: false,
+        modalLocation: null,
+        modalLevel: 20,
+
+        async init() {
+            await this.loadLocations();
+        },
+
+        async loadLocations() {
+            this.loading = true;
+            try {
+                const params = new URLSearchParams();
+                if (this.searchQuery) params.append('search', this.searchQuery);
+
+                const response = await fetch(`/api/locations?${params}`);
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    this.locations = data.locations;
+                    this.total = data.total;
+                }
+            } catch (error) {
+                console.error('Error loading locations:', error);
+                toast.error('Failed to load locations');
+            }
+            this.loading = false;
+        },
+
+        async search() {
+            await this.loadLocations();
+        },
+
+        toggleSelect(id) {
+            const index = this.selectedItems.indexOf(id);
+            if (index > -1) {
+                this.selectedItems.splice(index, 1);
+            } else {
+                this.selectedItems.push(id);
+            }
+        },
+
+        getLocationGradient(name) {
+            const gradients = {
+                'Paris': 'from-purple-900/50 to-pink-900/50',
+                'Dubai': 'from-blue-900/50 to-cyan-900/50',
+                'Sapienza': 'from-green-900/50 to-teal-900/50',
+                'Berlin': 'from-gray-900/50 to-red-900/50',
+                'Chongqing': 'from-purple-900/50 to-blue-900/50',
+                'Mendoza': 'from-amber-900/50 to-orange-900/50',
+                'Miami': 'from-cyan-900/50 to-blue-900/50',
+                'Mumbai': 'from-orange-900/50 to-yellow-900/50',
+                'Default': 'from-gray-800/50 to-gray-900/50'
+            };
+
+            for (const [key, value] of Object.entries(gradients)) {
+                if (name.toLowerCase().includes(key.toLowerCase())) {
+                    return value;
+                }
+            }
+            return gradients.Default;
+        },
+
+        getLocationIcon(name) {
+            const icons = {
+                'Paris': 'fas fa-crown text-purple-300',
+                'Dubai': 'fas fa-building text-cyan-300',
+                'Sapienza': 'fas fa-umbrella-beach text-teal-300',
+                'Berlin': 'fas fa-music text-red-300',
+                'Chongqing': 'fas fa-city text-purple-300',
+                'Mendoza': 'fas fa-wine-glass text-amber-300',
+                'Miami': 'fas fa-car text-cyan-300',
+                'Mumbai': 'fas fa-gopuram text-orange-300',
+                'Hokkaido': 'fas fa-hospital text-blue-300',
+                'Colorado': 'fas fa-crosshairs text-green-300',
+                'Bangkok': 'fas fa-hotel text-yellow-300',
+                'Marrakesh': 'fas fa-mosque text-red-300',
+                'Dartmoor': 'fas fa-chess-rook text-gray-300',
+                'Default': 'fas fa-map-marker-alt text-peacock-300'
+            };
+
+            for (const [key, value] of Object.entries(icons)) {
+                if (name.toLowerCase().includes(key.toLowerCase())) {
+                    return value;
+                }
+            }
+            return icons.Default;
+        },
+
+        openCustomLevelModal(location) {
+            this.modalLocation = location;
+            this.modalLevel = location.max_level;
+            this.showModal = true;
+        },
+
+        async maxAllLocations() {
+            try {
+                const response = await fetch('/api/unlock/locations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_type: 'locations', items: [] })
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    toast.success(data.message);
+                } else {
+                    toast.error(data.message || 'Failed to max locations');
+                }
+            } catch (error) {
+                toast.error('Failed to max locations');
+            }
+        },
+
+        async maxSelectedLocations() {
+            if (this.selectedItems.length === 0) return;
+
+            try {
+                const response = await fetch('/api/unlock/locations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_type: 'locations', items: this.selectedItems })
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    toast.success(`Maxed ${this.selectedItems.length} locations`);
+                    this.selectedItems = [];
+                } else {
+                    toast.error(data.message || 'Failed to max locations');
+                }
+            } catch (error) {
+                toast.error('Failed to max locations');
+            }
+        },
+
+        async maxLocation(id) {
+            try {
+                const response = await fetch('/api/unlock/locations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_type: 'locations', items: [id] })
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    toast.success('Location mastery maxed!');
+                } else {
+                    toast.error(data.message || 'Failed to max location');
+                }
+            } catch (error) {
+                toast.error('Failed to max location');
+            }
+        },
+
+        async applyCustomLevel() {
+            try {
+                const response = await fetch('/api/unlock/locations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        item_type: 'locations',
+                        items: [],
+                        custom_level: parseInt(this.customLevel)
+                    })
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    toast.success(`All locations set to level ${this.customLevel}`);
+                } else {
+                    toast.error(data.message || 'Failed to set custom level');
+                }
+            } catch (error) {
+                toast.error('Failed to set custom level');
+            }
+        },
+
+        async applyModalLevel() {
+            if (!this.modalLocation) return;
+
+            try {
+                const response = await fetch('/api/unlock/locations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        item_type: 'locations',
+                        items: [this.modalLocation.id],
+                        custom_level: parseInt(this.modalLevel)
+                    })
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    toast.success(`${this.modalLocation.name.split(' - ')[0]} set to level ${this.modalLevel}`);
+                    this.showModal = false;
+                } else {
+                    toast.error(data.message || 'Failed to set level');
+                }
+            } catch (error) {
+                toast.error('Failed to set level');
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

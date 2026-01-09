@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peacock Ultimate Unlocker</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        peacock: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-gray-100 min-h-screen"
+      x-data="appState()" x-init="init()">
+
+    <!-- Animated Background -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute top-20 left-20 w-[500px] h-[500px] bg-peacock-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-20 animate-blob"></div>
+        <div class="absolute top-40 right-20 w-[500px] h-[500px] bg-purple-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-20 animate-blob animation-delay-2000"></div>
+        <div class="absolute -bottom-20 left-40 w-[500px] h-[500px] bg-blue-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-20 animate-blob animation-delay-4000"></div>
+        <div class="absolute top-1/2 left-1/2 w-[500px] h-[500px] bg-pink-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-10 animate-blob" style="animation-delay: 3s;"></div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="flex h-screen relative z-10">
+
+        <!-- Sidebar -->
+        <aside
+            x-show="sidebarOpen"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="-translate-x-full"
+            x-transition:enter-end="translate-x-0"
+            x-transition:leave="transition ease-in duration-300"
+            x-transition:leave-start="translate-x-0"
+            x-transition:leave-end="-translate-x-full"
+            class="w-64 bg-gray-900/50 backdrop-blur-xl border-r border-gray-700/50 flex flex-col">
+
+            <!-- Logo -->
+            <div class="p-6 border-b border-gray-700/50">
+                <h1 class="text-2xl font-black flex items-center">
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-peacock-400 via-blue-400 to-purple-400 animate-pulse">
+                        <i class="fas fa-feather-alt mr-2"></i>Peacock
+                    </span>
+                </h1>
+                <p class="text-xs text-gray-400 mt-1 font-medium">
+                    <i class="fas fa-unlock-alt mr-1"></i> Ultimate Unlocker
+                </p>
+                <div class="mt-3 flex items-center space-x-2">
+                    <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span class="text-xs text-green-400 font-semibold">Ready</span>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="flex-1 p-4 space-y-2">
+                <a href="/" class="nav-item {% if page == 'dashboard' %}active{% endif %}">
+                    <i class="fas fa-home mr-3"></i>
+                    Dashboard
+                </a>
+                <a href="/challenges" class="nav-item {% if page == 'challenges' %}active{% endif %}">
+                    <i class="fas fa-trophy mr-3"></i>
+                    Challenges
+                </a>
+                <a href="/locations" class="nav-item {% if page == 'locations' %}active{% endif %}">
+                    <i class="fas fa-map-marked-alt mr-3"></i>
+                    Locations
+                </a>
+                <a href="/escalations" class="nav-item {% if page == 'escalations' %}active{% endif %}">
+                    <i class="fas fa-layer-group mr-3"></i>
+                    Escalations
+                </a>
+                <a href="/stories" class="nav-item {% if page == 'stories' %}active{% endif %}">
+                    <i class="fas fa-book mr-3"></i>
+                    Mission Stories
+                </a>
+                <a href="/settings" class="nav-item {% if page == 'settings' %}active{% endif %}">
+                    <i class="fas fa-cog mr-3"></i>
+                    Settings
+                </a>
+            </nav>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-gray-700/50">
+                <div class="text-xs text-gray-400">
+                    <p>
+                        <i class="fas fa-server mr-2"></i>Status:
+                        <span x-show="status.peacock_detected" class="text-green-400">Online</span>
+                        <span x-show="!status.peacock_detected" class="text-red-400">Not Detected</span>
+                    </p>
+                    <p class="mt-1"><i class="fas fa-code-branch mr-2"></i>Version: 1.0.0</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+
+            <!-- Header -->
+            <header class="bg-gradient-to-r from-gray-900/40 via-purple-900/30 to-gray-900/40 backdrop-blur-xl border-b border-gray-700/50 px-6 py-4 shadow-lg">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <button @click="sidebarOpen = !sidebarOpen" 
+                                class="text-gray-400 hover:text-white transition-all duration-300 hover:scale-110">
+                            <i class="fas fa-bars text-xl"></i>
+                        </button>
+                        <h2 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-peacock-400 to-blue-400">
+                            {% block header_title %}Dashboard{% endblock %}
+                        </h2>
+                    </div>
+
+                    <div class="flex items-center space-x-4">
+                        <!-- Profile Selector -->
+                        <div class="flex items-center space-x-2 bg-gray-800/50 px-4 py-2 rounded-lg border border-gray-700/50 backdrop-blur-sm">
+                            <i class="fas fa-user text-peacock-400"></i>
+                            <select x-model="selectedProfile"
+                                    class="bg-transparent border-none text-sm focus:outline-none focus:ring-0 text-white font-medium cursor-pointer">
+                                <option value="">All Profiles</option>
+                                <template x-for="profile in profiles" :key="profile.index">
+                                    <option :value="profile.index" x-text="profile.name"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <!-- Theme Toggle -->
+                        <button @click="theme = theme === 'dark' ? 'light' : 'dark'"
+                                class="p-3 rounded-lg bg-gray-800/50 hover:bg-gray-700/50 transition-all duration-300 border border-gray-700/50 hover:border-peacock-500/50 hover:scale-110">
+                            <i class="fas fa-moon text-peacock-400"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="flex-1 overflow-y-auto p-6">
+                {% block content %}
+                <!-- Quick Actions -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Unlock All Card -->
+                    <div class="card group animate-float" x-data="{ unlocking: false }" style="animation-delay: 0s;">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="icon-wrapper bg-gradient-to-br from-peacock-500/30 to-blue-500/30 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-rocket text-2xl text-peacock-400 animate-pulse"></i>
+                            </div>
+                            <span class="badge badge-success animate-pulse">⚡ Quick</span>
+                        </div>
+                        <h3 class="text-lg font-bold mb-2 text-gradient">Unlock All</h3>
+                        <p class="text-sm text-gray-400 mb-4">Max everything instantly</p>
+                        <button
+                            @click="unlockAll()"
+                            :disabled="unlocking"
+                            class="btn-primary w-full">
+                            <span x-show="unlocking">
+                                <i class="fas fa-spinner fa-spin mr-2"></i> Unlocking...
+                            </span>
+                            <span x-show="!unlocking"><i class="fas fa-rocket mr-2"></i> Unlock Everything</span>
+                        </button>
+                    </div>
+
+                    <!-- Challenges Card -->
+                    <div class="card group animate-float" style="animation-delay: 0.1s;">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="icon-wrapper bg-gradient-to-br from-purple-500/30 to-pink-500/30 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-trophy text-2xl text-purple-400"></i>
+                            </div>
+                            <span class="badge badge-info" x-text="`${stats.challenges || 0}`"></span>
+                        </div>
+                        <h3 class="text-lg font-bold mb-2">Challenges</h3>
+                        <p class="text-sm text-gray-400 mb-4" x-text="`${stats.challenges || 0} challenges available`"></p>
+                        <a href="/challenges" class="btn-secondary w-full">
+                            <i class="fas fa-eye mr-2"></i> Browse
+                        </a>
+                    </div>
+
+                    <!-- Locations Card -->
+                    <div class="card group animate-float" style="animation-delay: 0.2s;">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="icon-wrapper bg-gradient-to-br from-blue-500/30 to-cyan-500/30 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-map-marked-alt text-2xl text-blue-400"></i>
+                            </div>
+                            <span class="badge badge-info" x-text="`${stats.locations || 0}`"></span>
+                        </div>
+                        <h3 class="text-lg font-bold mb-2">Locations</h3>
+                        <p class="text-sm text-gray-400 mb-4" x-text="`${stats.locations || 0} locations to master`"></p>
+                        <a href="/locations" class="btn-secondary w-full">
+                            <i class="fas fa-compass mr-2"></i> Explore
+                        </a>
+                    </div>
+
+                    <!-- Backups Card -->
+                    <div class="card group animate-float" style="animation-delay: 0.3s;">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="icon-wrapper bg-gradient-to-br from-green-500/30 to-emerald-500/30 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-shield-alt text-2xl text-green-400"></i>
+                            </div>
+                            <span class="badge badge-success"><i class="fas fa-check mr-1"></i> Safe</span>
+                        </div>
+                        <h3 class="text-lg font-bold mb-2">Backups</h3>
+                        <p class="text-sm text-gray-400 mb-4">Auto-saved & secure</p>
+                        <button
+                            @click="restoreBackup()"
+                            class="btn-secondary w-full">
+                            <i class="fas fa-history mr-2"></i> Restore
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats Overview -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div class="card bg-gradient-to-br from-purple-500/20 to-purple-900/20 border-purple-500/40 animate-glow" style="animation-delay: 0s;">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs text-purple-300 uppercase tracking-wider font-semibold mb-2">
+                                    <i class="fas fa-trophy mr-1"></i> Challenges
+                                </p>
+                                <p class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400" 
+                                   x-text="stats.challenges || 0"></p>
+                            </div>
+                            <div class="p-3 bg-purple-500/30 rounded-full">
+                                <i class="fas fa-trophy text-4xl text-purple-300 glow"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card bg-gradient-to-br from-orange-500/20 to-orange-900/20 border-orange-500/40 animate-glow" style="animation-delay: 0.5s;">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs text-orange-300 uppercase tracking-wider font-semibold mb-2">
+                                    <i class="fas fa-layer-group mr-1"></i> Escalations
+                                </p>
+                                <p class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-400" 
+                                   x-text="stats.escalations || 0"></p>
+                            </div>
+                            <div class="p-3 bg-orange-500/30 rounded-full">
+                                <i class="fas fa-layer-group text-4xl text-orange-300 glow"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card bg-gradient-to-br from-blue-500/20 to-blue-900/20 border-blue-500/40 animate-glow" style="animation-delay: 1s;">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs text-blue-300 uppercase tracking-wider font-semibold mb-2">
+                                    <i class="fas fa-book mr-1"></i> Stories
+                                </p>
+                                <p class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400" 
+                                   x-text="stats.stories || 0"></p>
+                            </div>
+                            <div class="p-3 bg-blue-500/30 rounded-full">
+                                <i class="fas fa-book text-4xl text-blue-300 glow"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card bg-gradient-to-br from-green-500/20 to-green-900/20 border-green-500/40 animate-glow" style="animation-delay: 1.5s;">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs text-green-300 uppercase tracking-wider font-semibold mb-2">
+                                    <i class="fas fa-users mr-1"></i> Profiles
+                                </p>
+                                <p class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400" 
+                                   x-text="stats.profiles || 0"></p>
+                            </div>
+                            <div class="p-3 bg-green-500/30 rounded-full">
+                                <i class="fas fa-users text-4xl text-green-300 glow"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <!-- Escalations Quick Access -->
+                    <div class="card">
+                        <h3 class="text-xl font-semibold mb-4 flex items-center">
+                            <i class="fas fa-layer-group mr-2 text-orange-400"></i>
+                            Escalations
+                        </h3>
+                        <p class="text-sm text-gray-400 mb-4">Complete all escalation contracts at max level</p>
+                        <a href="/escalations" class="btn-primary">
+                            <i class="fas fa-arrow-right mr-2"></i> View Escalations
+                        </a>
+                    </div>
+
+                    <!-- Mission Stories Quick Access -->
+                    <div class="card">
+                        <h3 class="text-xl font-semibold mb-4 flex items-center">
+                            <i class="fas fa-book mr-2 text-blue-400"></i>
+                            Mission Stories
+                        </h3>
+                        <p class="text-sm text-gray-400 mb-4">Unlock all mission stories and opportunities</p>
+                        <a href="/stories" class="btn-primary">
+                            <i class="fas fa-arrow-right mr-2"></i> View Stories
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Recent Activity / Status -->
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-4 flex items-center">
+                        <i class="fas fa-clock mr-2 text-peacock-400"></i>
+                        System Status
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-2 h-2 rounded-full animate-pulse"
+                                     :class="status.peacock_detected ? 'bg-green-400' : 'bg-red-400'"></div>
+                                <span class="text-sm">Peacock Server</span>
+                            </div>
+                            <span class="text-xs text-gray-400"
+                                  x-text="status.peacock_detected ? 'Detected' : 'Not Found'"></span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg" x-show="status.peacock_path">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-2 h-2 bg-blue-400 rounded-full"></div>
+                                <span class="text-sm">Installation Path</span>
+                            </div>
+                            <span class="text-xs text-gray-400 truncate max-w-xs" x-text="status.peacock_path"></span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-2 h-2 bg-peacock-400 rounded-full"></div>
+                                <span class="text-sm">Ready to unlock</span>
+                            </div>
+                            <span class="text-xs text-gray-400">Just now</span>
+                        </div>
+                    </div>
+                </div>
+                {% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 space-y-2 z-50"></div>
+
+    <!-- Custom JS -->
+    <script src="/static/js/app.js"></script>
+
+    <!-- Page State -->
+    <script>
+    function appState() {
+        return {
+            sidebarOpen: true,
+            theme: 'dark',
+            selectedProfile: '',
+            profiles: [],
+            stats: {},
+            status: {
+                peacock_detected: false,
+                peacock_path: null
+            },
+
+            async init() {
+                await this.loadStatus();
+                await this.loadProfiles();
+                await this.loadStats();
+            },
+
+            async loadStatus() {
+                try {
+                    const response = await fetch('/api/status');
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        this.status = data;
+                    }
+                } catch (error) {
+                    console.error('Error loading status:', error);
+                }
+            },
+
+            async loadProfiles() {
+                try {
+                    const response = await fetch('/api/profiles');
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        this.profiles = data.profiles;
+                    }
+                } catch (error) {
+                    console.error('Error loading profiles:', error);
+                }
+            },
+
+            async loadStats() {
+                try {
+                    const response = await fetch('/api/stats');
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        this.stats = data.stats;
+                    }
+                } catch (error) {
+                    console.error('Error loading stats:', error);
+                }
+            },
+
+            async unlockAll() {
+                try {
+                    const body = {};
+                    if (this.selectedProfile !== '') {
+                        body.profile_index = parseInt(this.selectedProfile);
+                    }
+
+                    const response = await fetch('/api/unlock/all', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    const data = await response.json();
+
+                    if (data.status === 'success') {
+                        toast.success(data.message);
+                    } else {
+                        toast.error(data.message || 'Failed to unlock');
+                    }
+                } catch (error) {
+                    toast.error('Failed to unlock everything');
+                }
+            },
+
+            async restoreBackup() {
+                if (!confirm('Restore the latest backup for all profiles?')) return;
+
+                try {
+                    const response = await fetch('/api/backup/restore', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const data = await response.json();
+
+                    if (data.status === 'success') {
+                        toast.success(data.message);
+                    } else {
+                        toast.error(data.message || 'Failed to restore backup');
+                    }
+                } catch (error) {
+                    toast.error('Failed to restore backup');
+                }
+            }
+        }
+    }
+    </script>
+</body>
+</html>

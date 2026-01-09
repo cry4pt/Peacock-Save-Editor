@@ -1,0 +1,218 @@
+{% extends "index.html" %}
+
+{% block header_title %}Mission Stories{% endblock %}
+
+{% block content %}
+<div x-data="storiesPage()" x-init="init()">
+    <!-- Header with Search -->
+    <div class="card mb-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-2xl font-bold text-gradient">Mission Stories</h2>
+                <p class="text-gray-400 text-sm mt-1">Browse and unlock mission stories (opportunities)</p>
+            </div>
+            <div class="flex items-center space-x-3">
+                <span class="badge badge-info" x-text="`${total} Available`"></span>
+                <button
+                    @click="unlockAll()"
+                    :disabled="loading"
+                    class="btn-primary">
+                    <i class="fas fa-unlock mr-2"></i>
+                    Unlock All Stories
+                </button>
+            </div>
+        </div>
+
+        <!-- Search Box -->
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input
+                type="search"
+                x-model="searchQuery"
+                @input.debounce.300ms="search()"
+                placeholder="Search mission stories... (e.g., 'embassy', 'paris')"
+                class="input">
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div x-show="loading" class="text-center py-12">
+        <i class="fas fa-spinner fa-spin text-4xl text-peacock-400 mb-4"></i>
+        <p class="text-gray-400">Loading mission stories...</p>
+    </div>
+
+    <!-- Selected Items Bar -->
+    <div x-show="selectedItems.length > 0"
+         x-transition
+         class="card mb-6 bg-peacock-500/10 border-peacock-500/30">
+        <div class="flex items-center justify-between">
+            <span class="text-sm">
+                <i class="fas fa-check-circle text-peacock-400 mr-2"></i>
+                <span x-text="selectedItems.length"></span> story(ies) selected
+            </span>
+            <div class="flex items-center space-x-3">
+                <button
+                    @click="selectedItems = []"
+                    class="btn-secondary text-sm py-2">
+                    Clear Selection
+                </button>
+                <button
+                    @click="unlockSelected()"
+                    class="btn-primary text-sm py-2">
+                    <i class="fas fa-unlock mr-2"></i>
+                    Unlock Selected
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stories Grid -->
+    <div x-show="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <template x-for="story in stories" :key="story.id">
+            <div class="card group cursor-pointer" @click="toggleSelect(story.id)">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center space-x-3">
+                        <input
+                            type="checkbox"
+                            class="w-5 h-5 rounded border-gray-600 text-peacock-500 focus:ring-peacock-500"
+                            :checked="selectedItems.includes(story.id)"
+                            @click.stop="toggleSelect(story.id)">
+                        <div>
+                            <h4 class="font-semibold group-hover:text-peacock-400 transition" x-text="story.name"></h4>
+                            <p class="text-xs text-gray-400" x-text="story.briefing || 'No briefing available'"></p>
+                        </div>
+                    </div>
+                    <span class="badge badge-success text-xs" x-text="story.location"></span>
+                </div>
+                <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-700/50">
+                    <span class="text-xs text-gray-400">
+                        <i class="fas fa-book text-purple-400 mr-1"></i>
+                        Mission Story
+                    </span>
+                    <button
+                        @click.stop="unlockSingle(story.id)"
+                        class="text-peacock-400 hover:text-peacock-300 text-sm">
+                        <i class="fas fa-unlock"></i> Unlock
+                    </button>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <!-- Empty State -->
+    <div x-show="!loading && stories.length === 0" class="text-center py-12">
+        <i class="fas fa-book text-4xl text-gray-600 mb-4"></i>
+        <p class="text-gray-400">No mission stories found</p>
+        <p class="text-sm text-gray-500 mt-2" x-show="searchQuery">Try a different search term</p>
+    </div>
+</div>
+
+<script>
+function storiesPage() {
+    return {
+        stories: [],
+        total: 0,
+        loading: true,
+        searchQuery: '',
+        selectedItems: [],
+
+        async init() {
+            await this.loadStories();
+        },
+
+        async loadStories() {
+            this.loading = true;
+            try {
+                const params = new URLSearchParams();
+                if (this.searchQuery) params.append('search', this.searchQuery);
+
+                const response = await fetch(`/api/stories?${params}`);
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    this.stories = data.stories;
+                    this.total = data.total;
+                }
+            } catch (error) {
+                console.error('Error loading stories:', error);
+                toast.error('Failed to load mission stories');
+            }
+            this.loading = false;
+        },
+
+        async search() {
+            await this.loadStories();
+        },
+
+        toggleSelect(id) {
+            const index = this.selectedItems.indexOf(id);
+            if (index > -1) {
+                this.selectedItems.splice(index, 1);
+            } else {
+                this.selectedItems.push(id);
+            }
+        },
+
+        async unlockAll() {
+            try {
+                const response = await fetch('/api/unlock/stories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_type: 'stories', items: [] })
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    toast.success(data.message);
+                } else {
+                    toast.error(data.message || 'Failed to unlock stories');
+                }
+            } catch (error) {
+                toast.error('Failed to unlock stories');
+            }
+        },
+
+        async unlockSelected() {
+            if (this.selectedItems.length === 0) return;
+
+            try {
+                const response = await fetch('/api/unlock/stories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_type: 'stories', items: this.selectedItems })
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    toast.success(`Unlocked ${this.selectedItems.length} mission stories`);
+                    this.selectedItems = [];
+                } else {
+                    toast.error(data.message || 'Failed to unlock stories');
+                }
+            } catch (error) {
+                toast.error('Failed to unlock stories');
+            }
+        },
+
+        async unlockSingle(id) {
+            try {
+                const response = await fetch('/api/unlock/stories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_type: 'stories', items: [id] })
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    toast.success('Mission story unlocked!');
+                } else {
+                    toast.error(data.message || 'Failed to unlock story');
+                }
+            } catch (error) {
+                toast.error('Failed to unlock story');
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

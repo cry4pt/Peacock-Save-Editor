@@ -1,0 +1,266 @@
+{% extends "index.html" %}
+
+{% block header_title %}Challenges{% endblock %}
+
+{% block content %}
+<div x-data="challengesPage()" x-init="init()">
+    <!-- Header with Search -->
+    <div class="card mb-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-2xl font-bold text-gradient">Challenges</h2>
+                <p class="text-gray-400 text-sm mt-1">Browse and unlock challenges</p>
+            </div>
+            <div class="flex items-center space-x-3">
+                <span class="badge badge-info" x-text="`${total} Available`"></span>
+                <button
+                    @click="unlockAll()"
+                    :disabled="loading"
+                    class="btn-primary">
+                    <i class="fas fa-unlock mr-2"></i>
+                    Unlock All Challenges
+                </button>
+            </div>
+        </div>
+
+        <!-- Search Box -->
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input
+                type="search"
+                x-model="searchQuery"
+                @input.debounce.300ms="search()"
+                placeholder="Search challenges... (e.g., 'novikov', 'silent assassin', 'paris')"
+                class="input">
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-6">
+        <div class="flex items-center space-x-4 flex-wrap">
+            <label class="text-sm text-gray-400">Filter by Location:</label>
+            <div class="flex flex-wrap gap-2">
+                <button
+                    @click="locationFilter = ''"
+                    class="badge cursor-pointer hover:bg-blue-500/40"
+                    :class="locationFilter === '' ? 'badge-info' : ''">
+                    All
+                </button>
+                <template x-for="loc in uniqueLocations" :key="loc">
+                    <button
+                        @click="setLocationFilter(loc)"
+                        class="badge cursor-pointer hover:bg-gray-700"
+                        :class="locationFilter === loc ? 'badge-info' : ''"
+                        x-text="loc">
+                    </button>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div x-show="loading" class="text-center py-12">
+        <i class="fas fa-spinner fa-spin text-4xl text-peacock-400 mb-4"></i>
+        <p class="text-gray-400">Loading challenges...</p>
+    </div>
+
+    <!-- Selected Items Bar -->
+    <div x-show="selectedItems.length > 0"
+         x-transition
+         class="card mb-6 bg-peacock-500/10 border-peacock-500/30">
+        <div class="flex items-center justify-between">
+            <span class="text-sm">
+                <i class="fas fa-check-circle text-peacock-400 mr-2"></i>
+                <span x-text="selectedItems.length"></span> challenge(s) selected
+            </span>
+            <div class="flex items-center space-x-3">
+                <button
+                    @click="selectedItems = []"
+                    class="btn-secondary text-sm py-2">
+                    Clear Selection
+                </button>
+                <button
+                    @click="unlockSelected()"
+                    class="btn-primary text-sm py-2">
+                    <i class="fas fa-unlock mr-2"></i>
+                    Unlock Selected
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Challenges Grid -->
+    <div x-show="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <template x-for="challenge in filteredChallenges" :key="challenge.id">
+            <div class="card group cursor-pointer" @click="toggleSelect(challenge.id)">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center space-x-3">
+                        <input
+                            type="checkbox"
+                            class="w-5 h-5 rounded border-gray-600 text-peacock-500 focus:ring-peacock-500"
+                            :checked="selectedItems.includes(challenge.id)"
+                            @click.stop="toggleSelect(challenge.id)">
+                        <div>
+                            <h4 class="font-semibold group-hover:text-peacock-400 transition" x-text="challenge.name"></h4>
+                            <p class="text-xs text-gray-400" x-text="challenge.description || 'No description'"></p>
+                        </div>
+                    </div>
+                    <span class="badge badge-success text-xs" x-text="challenge.location"></span>
+                </div>
+                <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-700/50">
+                    <span class="text-xs text-gray-400">
+                        <i class="fas fa-trophy text-yellow-400 mr-1"></i>
+                        Challenge
+                    </span>
+                    <button
+                        @click.stop="unlockSingle(challenge.id)"
+                        class="text-peacock-400 hover:text-peacock-300 text-sm">
+                        <i class="fas fa-unlock"></i> Unlock
+                    </button>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <!-- Empty State -->
+    <div x-show="!loading && filteredChallenges.length === 0" class="text-center py-12">
+        <i class="fas fa-trophy text-4xl text-gray-600 mb-4"></i>
+        <p class="text-gray-400">No challenges found</p>
+        <p class="text-sm text-gray-500 mt-2" x-show="searchQuery || locationFilter">Try a different search term or filter</p>
+    </div>
+
+    <!-- Pagination Info -->
+    <div x-show="!loading && challenges.length > 0" class="mt-6 text-center text-sm text-gray-400">
+        Showing <span x-text="filteredChallenges.length"></span> of <span x-text="total"></span> challenges
+    </div>
+</div>
+
+<script>
+function challengesPage() {
+    return {
+        challenges: [],
+        total: 0,
+        loading: true,
+        searchQuery: '',
+        locationFilter: '',
+        selectedItems: [],
+        uniqueLocations: [],
+
+        get filteredChallenges() {
+            let result = this.challenges;
+
+            if (this.locationFilter) {
+                result = result.filter(c => c.location === this.locationFilter);
+            }
+
+            return result;
+        },
+
+        async init() {
+            await this.loadChallenges();
+        },
+
+        async loadChallenges() {
+            this.loading = true;
+            try {
+                const params = new URLSearchParams();
+                if (this.searchQuery) params.append('search', this.searchQuery);
+
+                const response = await fetch(`/api/challenges?${params}`);
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    this.challenges = data.challenges;
+                    this.total = data.total;
+
+                    // Extract unique locations
+                    const locations = [...new Set(this.challenges.map(c => c.location))];
+                    this.uniqueLocations = locations.sort().slice(0, 10); // Limit to 10 for UI
+                }
+            } catch (error) {
+                console.error('Error loading challenges:', error);
+                toast.error('Failed to load challenges');
+            }
+            this.loading = false;
+        },
+
+        async search() {
+            await this.loadChallenges();
+        },
+
+        setLocationFilter(loc) {
+            this.locationFilter = this.locationFilter === loc ? '' : loc;
+        },
+
+        toggleSelect(id) {
+            const index = this.selectedItems.indexOf(id);
+            if (index > -1) {
+                this.selectedItems.splice(index, 1);
+            } else {
+                this.selectedItems.push(id);
+            }
+        },
+
+        async unlockAll() {
+            try {
+                const response = await fetch('/api/unlock/challenges', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_type: 'challenges', items: [] })
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    toast.success(data.message);
+                } else {
+                    toast.error(data.message || 'Failed to unlock challenges');
+                }
+            } catch (error) {
+                toast.error('Failed to unlock challenges');
+            }
+        },
+
+        async unlockSelected() {
+            if (this.selectedItems.length === 0) return;
+
+            try {
+                const response = await fetch('/api/unlock/challenges', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_type: 'challenges', items: this.selectedItems })
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    toast.success(`Unlocked ${this.selectedItems.length} challenges`);
+                    this.selectedItems = [];
+                } else {
+                    toast.error(data.message || 'Failed to unlock challenges');
+                }
+            } catch (error) {
+                toast.error('Failed to unlock challenges');
+            }
+        },
+
+        async unlockSingle(id) {
+            try {
+                const response = await fetch('/api/unlock/challenges', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_type: 'challenges', items: [id] })
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    toast.success('Challenge unlocked!');
+                } else {
+                    toast.error(data.message || 'Failed to unlock challenge');
+                }
+            } catch (error) {
+                toast.error('Failed to unlock challenge');
+            }
+        }
+    }
+}
+</script>
+{% endblock %}
