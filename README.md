@@ -314,7 +314,7 @@ POST /api/backup/create
 Body: { profileId: "xxx", name: "My Backup" }
 ```
 
-See [`docs/API.md`](docs/API.md) for complete documentation.
+See [`docs/API.md`](https://github.com/cry4pt/Peacock-Save-Editor/blob/main/webapp/docs/API.md) for complete documentation.
 
 ---
 
