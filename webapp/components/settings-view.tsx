@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Save, RotateCcw, FolderOpen, Shield, Zap, Map, Eye, Shirt, Loader2, AlertCircle } from "lucide-react"
+import { Save, RotateCcw, FolderOpen, Shield, Zap, Map, Eye, Shirt, Loader2, AlertCircle, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,6 +9,17 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import useSWR from "swr"
 import {
   getSettings,
@@ -16,6 +27,7 @@ import {
   getStatus,
   createBackup,
   restoreBackup,
+  lockAll,
   type SettingsData,
   type StatusResponse,
 } from "@/lib/api"
@@ -26,6 +38,7 @@ export function SettingsView() {
   const [saving, setSaving] = useState(false)
   const [backingUp, setBackingUp] = useState(false)
   const [restoring, setRestoring] = useState(false)
+  const [resetting, setResetting] = useState(false)
   const [apiEndpoint, setApiEndpoint] = useState("Loading...")
 
   const { data: status } = useSWR<StatusResponse>("/api/status", getStatus)
@@ -94,6 +107,19 @@ export function SettingsView() {
       toast.error(error instanceof Error ? error.message : "Failed to restore backup")
     } finally {
       setRestoring(false)
+    }
+  }
+
+  const handleResetAll = async () => {
+    setResetting(true)
+    try {
+      const result = await lockAll()
+      toast.success(result.message)
+      mutateActivities()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to reset progress")
+    } finally {
+      setResetting(false)
     }
   }
 
@@ -304,6 +330,52 @@ export function SettingsView() {
               Restore Latest Backup
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Danger Zone */}
+      <Card className="border-destructive/50">
+        <CardHeader>
+          <CardTitle className="text-lg text-destructive">Danger Zone</CardTitle>
+          <CardDescription>Irreversible actions - use with caution</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              The action below will reset all your progress. Always create a backup before proceeding.
+            </AlertDescription>
+          </Alert>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                className="w-full gap-2"
+                disabled={resetting}
+              >
+                {resetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                Reset All Progress
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reset all progress?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will reset your profile to level 1 and remove all unlocks, mastery, challenges, and items. This action cannot be undone unless you have a backup.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="hover:text-foreground">Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleResetAll}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Reset Everything
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </CardContent>
       </Card>
     </div>

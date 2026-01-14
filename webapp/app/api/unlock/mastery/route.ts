@@ -61,6 +61,25 @@ export async function POST(request: NextRequest) {
     if (!profile.Extensions.progression) profile.Extensions.progression = {}
     const prog = profile.Extensions.progression
 
+    // Sniper rifle mastery definitions
+    const sniperRifles: Record<string, string[]> = {
+      "LOCATION_PARENT_AUSTRIA": [
+        "FIREARMS_SC_HERO_SNIPER_HM",
+        "FIREARMS_SC_HERO_SNIPER_KNIGHT",
+        "FIREARMS_SC_HERO_SNIPER_STONE"
+      ],
+      "LOCATION_PARENT_SALTY": [
+        "FIREARMS_SC_SEAGULL_HM",
+        "FIREARMS_SC_SEAGULL_KNIGHT",
+        "FIREARMS_SC_SEAGULL_STONE"
+      ],
+      "LOCATION_PARENT_CAGED": [
+        "FIREARMS_SC_FALCON_HM",
+        "FIREARMS_SC_FALCON_KNIGHT",
+        "FIREARMS_SC_FALCON_STONE"
+      ]
+    }
+
     if (locationId && level !== undefined) {
       // Set specific location
       const maxLevel = masteryLevels[locationId] || 20
@@ -70,9 +89,23 @@ export async function POST(request: NextRequest) {
       if (!prog.Locations) prog.Locations = {}
       if (!prog.Locations[locationId]) prog.Locations[locationId] = {}
 
-      prog.Locations[locationId].Xp = targetXp
-      prog.Locations[locationId].Level = targetLevel
-      prog.Locations[locationId].PreviouslySeenXp = targetXp
+      // Check if this is a sniper location
+      if (sniperRifles[locationId]) {
+        // Set mastery for each sniper rifle
+        for (const rifleId of sniperRifles[locationId]) {
+          if (!prog.Locations[locationId][rifleId]) {
+            prog.Locations[locationId][rifleId] = {}
+          }
+          prog.Locations[locationId][rifleId].Xp = targetXp
+          prog.Locations[locationId][rifleId].Level = targetLevel
+          prog.Locations[locationId][rifleId].PreviouslySeenXp = targetXp
+        }
+      } else {
+        // Regular location
+        prog.Locations[locationId].Xp = targetXp
+        prog.Locations[locationId].Level = targetLevel
+        prog.Locations[locationId].PreviouslySeenXp = targetXp
+      }
 
       await writeJsonFile(profileFile, profile)
 
@@ -90,9 +123,24 @@ export async function POST(request: NextRequest) {
       for (const [locId, maxLevel] of Object.entries(masteryLevels)) {
         const maxXp = calculateXpForLevel(maxLevel)
         if (!prog.Locations[locId]) prog.Locations[locId] = {}
-        prog.Locations[locId].Xp = maxXp
-        prog.Locations[locId].Level = maxLevel
-        prog.Locations[locId].PreviouslySeenXp = maxXp
+        
+        // Check if this is a sniper location
+        if (sniperRifles[locId]) {
+          // Set mastery for each sniper rifle
+          for (const rifleId of sniperRifles[locId]) {
+            if (!prog.Locations[locId][rifleId]) {
+              prog.Locations[locId][rifleId] = {}
+            }
+            prog.Locations[locId][rifleId].Xp = maxXp
+            prog.Locations[locId][rifleId].Level = maxLevel
+            prog.Locations[locId][rifleId].PreviouslySeenXp = maxXp
+          }
+        } else {
+          // Regular location
+          prog.Locations[locId].Xp = maxXp
+          prog.Locations[locId].Level = maxLevel
+          prog.Locations[locId].PreviouslySeenXp = maxXp
+        }
       }
 
       await writeJsonFile(profileFile, profile)

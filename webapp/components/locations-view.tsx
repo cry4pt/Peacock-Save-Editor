@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Search, MapPin, Star, Loader2 } from "lucide-react"
+import { Search, MapPin, Star, Loader2, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -10,13 +10,14 @@ import { Progress } from "@/components/ui/progress"
 import { Slider } from "@/components/ui/slider"
 import { Skeleton } from "@/components/ui/skeleton"
 import useSWR from "swr"
-import { getLocations, setMastery, maxAllMastery, type LocationData } from "@/lib/api"
+import { getLocations, setMastery, maxAllMastery, lockAllMastery, type LocationData } from "@/lib/api"
 import { toast } from "sonner"
 import { useActivities } from "@/hooks/use-activities"
 
 export function LocationsView() {
   const [searchQuery, setSearchQuery] = useState("")
   const [unlocking, setUnlocking] = useState(false)
+  const [locking, setLocking] = useState(false)
   const [updatingLocation, setUpdatingLocation] = useState<string | null>(null)
 
   const { data: locations, error, isLoading, mutate } = useSWR<LocationData[]>("/api/locations", getLocations)
@@ -39,6 +40,7 @@ export function LocationsView() {
 
   const handleSetMastery = async (locationId: string, level: number) => {
     setUpdatingLocation(locationId)
+    setLevels((prev) => ({ ...prev, [locationId]: level }))
     try {
       const result = await setMastery(locationId, level)
       toast.success(result.message)
@@ -46,6 +48,11 @@ export function LocationsView() {
       mutateActivities()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to set mastery")
+      setLevels((prev) => {
+        const newLevels = { ...prev }
+        delete newLevels[locationId]
+        return newLevels
+      })
     } finally {
       setUpdatingLocation(null)
     }
@@ -64,6 +71,22 @@ export function LocationsView() {
       toast.error(error instanceof Error ? error.message : "Failed to max all mastery")
     } finally {
       setUnlocking(false)
+    }
+  }
+
+  const handleLockAll = async () => {
+    setLocking(true)
+    try {
+      const result = await lockAllMastery()
+      toast.success(result.message)
+      // Reset local levels
+      setLevels({})
+      mutate()
+      mutateActivities()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to lock all mastery")
+    } finally {
+      setLocking(false)
     }
   }
 
@@ -87,10 +110,16 @@ export function LocationsView() {
           <Badge variant="secondary" className="px-3 py-1">
             {locations?.length ?? "..."} Locations
           </Badge>
-          <Button className="gap-2" onClick={handleMaxAll} disabled={unlocking}>
-            {unlocking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className="h-4 w-4" />}
-            Max All Mastery
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="destructive" className="gap-2" onClick={handleLockAll} disabled={locking}>
+              {locking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+              Lock All
+            </Button>
+            <Button className="gap-2" onClick={handleMaxAll} disabled={unlocking}>
+              {unlocking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className="h-4 w-4" />}
+              Max All Mastery
+            </Button>
+          </div>
         </div>
       </div>
 

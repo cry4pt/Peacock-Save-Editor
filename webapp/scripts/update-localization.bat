@@ -2,7 +2,7 @@
 cd .. 
 echo Updating localization data from Peacock... 
 echo. 
-call pnpm run extract-localization 
+call bun run extract-localization
 echo. 
 if %errorlevel% equ 0 ( 
     echo Localization updated successfully 

@@ -51,7 +51,11 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json(profiles)
+    return NextResponse.json(profiles, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30',
+      },
+    })
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unknown error" },

@@ -456,7 +456,7 @@ export function Dashboard() {
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel className="transition-all duration-200 hover:border-primary/50 hover:bg-primary/5 hover:text-foreground">
+                    <AlertDialogCancel className="hover:text-foreground">
                       Cancel
                     </AlertDialogCancel>
                     <AlertDialogAction

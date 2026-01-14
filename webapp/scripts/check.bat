@@ -2,6 +2,6 @@
 cd .. 
 echo Checking for TypeScript errors... 
 echo. 
-call pnpm run check 
+call bun run check
 echo. 
 pause 

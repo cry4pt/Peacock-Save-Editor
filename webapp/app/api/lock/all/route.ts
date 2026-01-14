@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import fs from "fs/promises"
 import path from "path"
-import { findPeacockPath, getProfiles, getMasteryMaxLevels, calculateXpForLevel, readJsonFile, writeJsonFile } from "@/lib/peacock"
+import { findPeacockPath, getProfiles, readJsonFile, writeJsonFile } from "@/lib/peacock"
 import { PEACOCK_PATHS } from "@/lib/constants"
 
-async function logActivity(peacockPath: string, description: string, type: string = "mastery") {
+async function logActivity(peacockPath: string, description: string, type: string = "unlock") {
   try {
     const logPath = path.join(peacockPath, PEACOCK_PATHS.USERDATA_DIR, PEACOCK_PATHS.ACTIVITY_LOG)
     let activities = []
@@ -53,63 +53,58 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to read profile" }, { status: 500 })
     }
 
-    const masteryLevels = await getMasteryMaxLevels(peacockPath)
-
     if (!profile.Extensions) profile.Extensions = {}
     if (!profile.Extensions.progression) profile.Extensions.progression = {}
     const prog = profile.Extensions.progression
 
-    if (!prog.Locations) prog.Locations = {}
-
-    // Sniper rifle mastery definitions
-    const sniperRifles: Record<string, string[]> = {
-      "LOCATION_PARENT_AUSTRIA": [
-        "FIREARMS_SC_HERO_SNIPER_HM",
-        "FIREARMS_SC_HERO_SNIPER_KNIGHT",
-        "FIREARMS_SC_HERO_SNIPER_STONE"
-      ],
-      "LOCATION_PARENT_SALTY": [
-        "FIREARMS_SC_SEAGULL_HM",
-        "FIREARMS_SC_SEAGULL_KNIGHT",
-        "FIREARMS_SC_SEAGULL_STONE"
-      ],
-      "LOCATION_PARENT_CAGED": [
-        "FIREARMS_SC_FALCON_HM",
-        "FIREARMS_SC_FALCON_KNIGHT",
-        "FIREARMS_SC_FALCON_STONE"
-      ]
+    // Reset profile level and XP
+    prog.ProfileLevel = 1
+    prog.XP = 0
+    if (!prog.PlayerProfileXP) prog.PlayerProfileXP = {}
+    prog.PlayerProfileXP.Total = 0
+    prog.PlayerProfileXP.ProfileLevel = 1
+    if (prog.PlayerProfileXP.PreviouslySeenTotal) {
+      prog.PlayerProfileXP.PreviouslySeenTotal = 0
     }
 
-    for (const [locId, maxLevel] of Object.entries(masteryLevels)) {
-      const maxXp = calculateXpForLevel(maxLevel)
-      if (!prog.Locations[locId]) prog.Locations[locId] = {}
-      
-      // Check if this is a sniper location
-      if (sniperRifles[locId]) {
-        // Set mastery for each sniper rifle
-        for (const rifleId of sniperRifles[locId]) {
-          if (!prog.Locations[locId][rifleId]) {
-            prog.Locations[locId][rifleId] = {}
-          }
-          prog.Locations[locId][rifleId].Xp = maxXp
-          prog.Locations[locId][rifleId].Level = maxLevel
-          prog.Locations[locId][rifleId].PreviouslySeenXp = maxXp
-        }
-      } else {
-        // Regular location
-        prog.Locations[locId].Xp = maxXp
-        prog.Locations[locId].Level = maxLevel
-        prog.Locations[locId].PreviouslySeenXp = maxXp
+    // Reset Merces
+    if (!prog.Merces) prog.Merces = {}
+    prog.Merces.Total = 0
+    prog.Merces.ProfileLevel = 1
+
+    // Reset all location mastery
+    if (prog.Locations) {
+      for (const locId of Object.keys(prog.Locations)) {
+        delete prog.Locations[locId]
+      }
+    }
+
+    // Clear all challenges
+    profile.Extensions.ChallengeProgression = {}
+
+    // Clear all mission stories
+    profile.Extensions.opportunityprogression = {}
+
+    // Clear all escalations
+    profile.Extensions.PeacockEscalations = {}
+    profile.Extensions.PeacockCompletedEscalations = []
+
+    // Reset Freelancer
+    if (profile.Extensions.CPD) {
+      const freelancerKey = "f8ec92c2-4fa2-471e-ae08-545480c746ee"
+      if (profile.Extensions.CPD[freelancerKey]) {
+        profile.Extensions.CPD[freelancerKey].MyMoney = 0
+        profile.Extensions.CPD[freelancerKey].EvergreenLevel = 0
       }
     }
 
     await writeJsonFile(profileFile, profile)
 
-    await logActivity(peacockPath, `Maxed all ${Object.keys(masteryLevels).length} location masteries`, "mastery")
+    await logActivity(peacockPath, "Reset all progress to level 1", "profile")
 
     return NextResponse.json({
       success: true,
-      message: `Maxed all ${Object.keys(masteryLevels).length} location masteries`
+      message: "Successfully reset all progress"
     })
   } catch (error) {
     return NextResponse.json(

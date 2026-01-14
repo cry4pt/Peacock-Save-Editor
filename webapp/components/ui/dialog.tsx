@@ -9,6 +9,16 @@ import { cn } from '@/lib/utils'
 function Dialog({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Root>) {
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return null
+  }
+
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }
 

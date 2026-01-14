@@ -17,9 +17,22 @@ export async function GET() {
       const profile = await readJsonFile<any>(profileFiles[0])
       if (profile?.Extensions?.progression?.Locations) {
         const locations = profile.Extensions.progression.Locations
+        const sniperLocations = ["LOCATION_PARENT_AUSTRIA", "LOCATION_PARENT_SALTY", "LOCATION_PARENT_CAGED"]
+        
         for (const [locId, locData] of Object.entries(locations)) {
           if (typeof locData === "object" && locData !== null) {
-            currentLevels[locId] = (locData as any).Level || 1
+            if (sniperLocations.includes(locId)) {
+              // For sniper locations, get level from first rifle sub-object
+              const rifles = Object.values(locData as any)
+              if (rifles.length > 0 && typeof rifles[0] === "object" && rifles[0] !== null) {
+                currentLevels[locId] = (rifles[0] as any).Level || 1
+              } else {
+                currentLevels[locId] = 1
+              }
+            } else {
+              // Regular location
+              currentLevels[locId] = (locData as any).Level || 1
+            }
           }
         }
       }

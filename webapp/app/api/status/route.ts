@@ -21,6 +21,10 @@ export async function GET() {
       peacock_path: peacockPath,
       profiles_count: profiles.length,
       message: `Connected to Peacock at ${peacockPath}`
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=10',
+      },
     })
   } catch (error) {
     return NextResponse.json({
