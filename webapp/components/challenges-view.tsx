@@ -9,6 +9,7 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import useSWR from "swr";
-import { unlockChallenges } from "@/lib/api";
+import { unlockChallenges, lockChallenges } from "@/lib/api";
 import { toast } from "sonner";
 import { useActivities } from "@/hooks/use-activities";
 
@@ -44,6 +45,7 @@ export function ChallengesView() {
   const [selectedLocation, setSelectedLocation] = useState("All");
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [unlocking, setUnlocking] = useState(false);
+  const [locking, setLocking] = useState(false);
   const [page, setPage] = useState(1);
   const limit = 100;
 
@@ -124,6 +126,55 @@ export function ChallengesView() {
     }
   };
 
+  const handleLockSelected = async () => {
+    if (selectedItems.length === 0) return;
+    setLocking(true);
+    try {
+      const result = await lockChallenges(selectedItems);
+      toast.success(result.message);
+      setSelectedItems([]);
+      mutate();
+      mutateActivities();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to lock challenges",
+      );
+    } finally {
+      setLocking(false);
+    }
+  };
+
+  const handleLockAll = async () => {
+    setLocking(true);
+    try {
+      const result = await lockChallenges();
+      toast.success(result.message);
+      mutate();
+      mutateActivities();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to lock challenges",
+      );
+    } finally {
+      setLocking(false);
+    }
+  };
+
+  const handleLockSingle = async (id: string) => {
+    try {
+      const result = await lockChallenges([id]);
+      toast.success(result.message);
+      mutate();
+      mutateActivities();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to lock challenge",
+      );
+    }
+  };
+
   const handleSearch = (value: string) => {
     setSearchQuery(value);
     setPage(1);
@@ -158,18 +209,33 @@ export function ChallengesView() {
           <Badge variant="secondary" className="px-3 py-1">
             {pagination?.total ?? "..."} Total
           </Badge>
-          <Button
-            className="gap-2"
-            onClick={handleUnlockAll}
-            disabled={unlocking}
-          >
-            {unlocking ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Unlock className="h-4 w-4" />
-            )}
-            Unlock All
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="destructive"
+              className="gap-2"
+              onClick={handleLockAll}
+              disabled={locking}
+            >
+              {locking ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Lock className="h-4 w-4" />
+              )}
+              Lock All
+            </Button>
+            <Button
+              className="gap-2"
+              onClick={handleUnlockAll}
+              disabled={unlocking}
+            >
+              {unlocking ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Unlock className="h-4 w-4" />
+              )}
+              Unlock All
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -229,6 +295,20 @@ export function ChallengesView() {
                 )}
                 Unlock Selected
               </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="gap-2"
+                onClick={handleLockSelected}
+                disabled={locking}
+              >
+                {locking ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Lock className="h-4 w-4" />
+                )}
+                Lock Selected
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -252,10 +332,12 @@ export function ChallengesView() {
           {challenges.map((challenge) => (
             <Card
               key={challenge.id}
-              className={`group cursor-pointer transition-all duration-200 hover:border-primary/50 ${
+              className={`group cursor-pointer transition-all duration-200 ${
                 selectedItems.includes(challenge.id)
-                  ? "border-primary bg-primary/5"
-                  : ""
+                  ? challenge.completed
+                    ? "border-destructive bg-destructive/5 hover:border-destructive/50"
+                    : "border-primary bg-primary/5 hover:border-primary/50"
+                  : "hover:border-primary/50"
               } ${challenge.completed ? "opacity-60" : ""}`}
               onClick={() => toggleSelect(challenge.id)}
             >
@@ -269,7 +351,9 @@ export function ChallengesView() {
                       className="mt-1"
                     />
                     <div className="space-y-1">
-                      <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">
+                      <h3 className={`font-medium text-foreground transition-colors ${
+                        challenge.completed ? "group-hover:text-destructive" : "group-hover:text-primary"
+                      }`}>
                         {challenge.name}
                       </h3>
                       <p className="text-sm text-muted-foreground line-clamp-2">
@@ -286,7 +370,20 @@ export function ChallengesView() {
                     <Trophy className="h-3.5 w-3.5 text-chart-4" />
                     {challenge.completed ? "Completed" : "Challenge"}
                   </div>
-                  {!challenge.completed && (
+                  {challenge.completed ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 gap-1.5 text-xs text-destructive hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLockSingle(challenge.id);
+                      }}
+                    >
+                      <Lock className="h-3.5 w-3.5" />
+                      Lock
+                    </Button>
+                  ) : (
                     <Button
                       variant="ghost"
                       size="sm"

@@ -1,627 +1,295 @@
-# 🎯 Peacock Save Editor
+# Peacock Save Editor
 
 A comprehensive web-based save editor for HITMAN World of Assassination using the Peacock server.
 
-![Next.js](https://img.shields.io/badge/Next.js-16.0-black?style=flat-square&logo=next.js)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=flat-square&logo=typescript)
+![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?style=flat-square&logo=typescript)
+![Bun](https://img.shields.io/badge/Bun-1.x-f9f1e1?style=flat-square&logo=bun)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
 ---
 
-## 📋 Table of Contents
+## Features
 
-- [Features](#-features)
-- [Screenshots](#-screenshots)
-- [Prerequisites](#-prerequisites)
-- [Installation](#-installation)
-- [Usage](#-usage)
-- [API Documentation](#-api-documentation)
-- [Project Structure](#-project-structure)
-- [Development](#-development)
-- [Troubleshooting](#-troubleshooting)
-- [Contributing](#-contributing)
-- [License](#-license)
-
----
-
-## ✨ Features
-
-### 🎮 Profile Management
+### Profile Management
 - **Multi-Profile Support** - Manage multiple HITMAN profiles
 - **Profile Overview** - View XP, level, mastery, and completion percentage
 - **Real-time Stats** - Live updates of profile statistics
-- **Profile Switching** - Easy switching between different profiles
 
-### 🔓 Unlock System
+### Unlock System
 - **Unlock All Content** - Instantly unlock all items, weapons, and gear
 - **Complete Profile** - Max out level, mastery, and all unlockables
-- **Granular Control** - Unlock specific categories:
-  - Challenges
-  - Mission Stories
-  - Escalations
-  - Location Mastery
+- **Granular Control** - Unlock specific categories (Challenges, Stories, Escalations, Mastery)
 
-### 📍 Location Management
+### Location Management
 - **20+ Locations** - Support for all HITMAN WoA locations
 - **Mastery Tracking** - View and modify mastery levels per location
 - **Quick Actions** - Max mastery with a single click
-- **Location Stats** - Track progress across all maps
 
-### 🎯 Challenge System
+### Challenge System
 - **5500+ Challenges** - Full challenge database with localization
 - **Search & Filter** - Find challenges by name or location
 - **Bulk Operations** - Complete multiple challenges at once
-- **Real Names** - No more cryptic IDs - human-readable names
 
-### 📖 Mission Stories
+### Mission Stories & Escalations
 - **240+ Stories** - All mission stories from the trilogy
-- **Location Filtering** - Browse stories by map
-- **Quick Search** - Find specific stories instantly
-- **Completion Tracking** - See which stories you've completed
-
-### 🎢 Escalations
 - **173 Escalations** - Complete escalation database
-- **Level Tracking** - Track progress through escalation levels
-- **Location Groups** - Organized by map and DLC
-- **Bulk Completion** - Complete escalations in batches
+- **Location Filtering** - Browse by map
 
-### 💾 Backup & Restore
+### Backup & Restore
 - **Automatic Backups** - Saves created before major changes
 - **Manual Backups** - Create backups anytime
 - **Restore Points** - Roll back to any previous state
-- **Backup Management** - View and manage all backups
 
-### 📊 Activity Logging
-- **Real-time Feed** - Live activity log of all actions
-- **Detailed Descriptions** - Know exactly what was unlocked
-- **Clear History** - Clean up activity log when needed
-- **Icon-based UI** - Visual indicators for different actions
-
-### 🎨 Modern UI/UX
+### Modern UI/UX
 - **Dark Theme** - Eye-friendly dark interface
 - **Responsive Design** - Works on desktop and tablets
-- **Smooth Animations** - Polished hover effects and transitions
-- **Quick Actions** - One-click access to common tasks
+- **Activity Logging** - Real-time feed of all actions
 
 ---
 
-## 🖼️ Screenshots
-
-> *Screenshots coming soon*
-
----
-
-## 📦 Prerequisites
-
-Before installing, ensure you have:
+## Prerequisites
 
 ### Required Software
-- **Node.js** (v18 or higher)
-  - Download: [https://nodejs.org/](https://nodejs.org/)
-  - Check version: `node --version`
-  
-- **pnpm** (v9 or higher)
-  - Install: `npm install -g pnpm`
-  - Check version: `pnpm --version`
+- **Node.js** (v18 or higher) - [Download](https://nodejs.org/)
+- **Bun** (v1.0 or higher) - [Download](https://bun.sh/)
+  ```bash
+  # Install Bun (Windows PowerShell)
+  powershell -c "irm bun.sh/install.ps1 | iex"
+
+  # Or via npm
+  npm install -g bun
+  ```
 
 ### Required Files
 - **Peacock Server** installed and configured
-  - The webapp needs access to Peacock's profile files
-  - Default location: `%LOCALAPPDATA%/IOI/Peacock/`
+- Default profile location: `%LOCALAPPDATA%/IOI/Peacock/`
 
 ### Supported Games
-- HITMAN 3 (Year 2 or later)
-- HITMAN World of Assassination
+- HITMAN 3 / HITMAN World of Assassination
 - Works with Peacock v7.0.0+
 
 ---
 
-## 🚀 Installation
+## Installation
 
-### Method 1: Automated Installation (Recommended)
+### Method 1: Automated (Recommended)
 
-1. **Download or clone this repository**
-   ```bash
-   git clone https://github.com/cry4pt/Peacock-Save-Editor.git
-   cd Peacock-Save-Editor/webapp
-   ```
+```bash
+git clone https://github.com/cry4pt/Peacock-Save-Editor.git
+cd Peacock-Save-Editor/webapp
+install.bat
+```
 
-2. **Run the installer**
-   ```bash
-   install.bat
-   ```
+The installer will:
+- Check for Node.js and Bun
+- Install all dependencies
+- Extract localization data from Peacock
+- Build and start the webapp
+- Open your browser at `http://localhost:3000`
 
-   The installer will:
-   - ✅ Check for Node.js and pnpm
-   - ✅ Install all dependencies
-   - ✅ Extract localization data from Peacock
-   - ✅ Create helper scripts
-   - ✅ Build and start the webapp
-   - ✅ Open your browser automatically
+### Method 2: Manual
 
-3. **Access the webapp**
-   - Automatically opens at: `http://localhost:3000`
+```bash
+git clone https://github.com/cry4pt/Peacock-Save-Editor.git
+cd Peacock-Save-Editor/webapp
 
----
+# Install dependencies
+bun install
 
-### Method 2: Manual Installation
+# Extract challenge/story names from Peacock
+bun run extract-localization
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/cry4pt/Peacock-Save-Editor.git
-   cd Peacock-Save-Editor/webapp
-   ```
+# Build for production
+bun run build
 
-2. **Install dependencies**
-   ```bash
-   pnpm install
-   ```
+# Start the server
+bun run start
+```
 
-3. **Extract localization data**
-   ```bash
-   pnpm run extract-localization
-   ```
-   
-   This searches for your Peacock installation and extracts challenge/story names.
-
-4. **Build for production**
-   ```bash
-   pnpm run build
-   ```
-
-5. **Start the server**
-   ```bash
-   pnpm run start
-   ```
-   
-   Or for development mode with hot reload:
-   ```bash
-   pnpm run dev
-   ```
-
-6. **Open your browser**
-   - Navigate to: `http://localhost:3000`
+For development with hot reload:
+```bash
+bun run dev
+```
 
 ---
 
-## 🎮 Usage
+## Usage
 
-### First Launch
-
-1. **Select a Profile**
-   - The dashboard shows all detected Peacock profiles
-   - Click on a profile to select it
-   - Profile stats appear in the sidebar
-
-2. **Understand the Interface**
-   - **Dashboard**: Overview and quick actions
-   - **Profile**: Detailed profile editor (XP, level, etc.)
-   - **Locations**: Manage location mastery
-   - **Challenges**: Complete challenges
-   - **Stories**: Complete mission stories
-   - **Escalations**: Complete escalations
-   - **Settings**: Configure Peacock path
+### Quick Start
+1. Open `http://localhost:3000`
+2. Select a profile from the dashboard
+3. Use quick action buttons to unlock content
 
 ### Quick Actions
 
-#### Unlock Everything
-```
-Dashboard → "Unlock All Content" button
-```
-- Unlocks all items, weapons, suits, and gear
-- Does NOT affect level, XP, or mastery
+| Action | Description |
+|--------|-------------|
+| **Unlock All Content** | Unlocks all items, weapons, suits, gear |
+| **Complete Profile** | Max level (7000), max mastery, all unlocks |
+| **Max Location** | Set specific location mastery to max |
+| **Complete Challenges** | Mark all challenges complete |
 
-#### Complete Profile
-```
-Dashboard → "Complete Profile" button
-```
-- Sets level to 7000
-- Maxes all location mastery
-- Unlocks all content
-- Completes all challenges, stories, and escalations
-
-#### Max Mastery for One Location
-```
-Locations → Select location → "Max" button
-```
-- Sets that location's mastery to max level
-- Unlocks location-specific items
-
-#### Complete All Challenges
-```
-Challenges → "Complete All" button
-```
-- Marks all challenges as completed
-- Unlocks challenge-specific rewards
-
-### Advanced Usage
-
-#### Create Backup
-```
-Settings → Backup & Restore → "Create Backup"
-```
-- Creates a timestamped backup
-- Backup includes all profile data
-- Stored in Peacock's backup folder
-
-#### Restore Backup
-```
-Settings → Backup & Restore → Select backup → "Restore"
-```
-- Reverts profile to backup state
-- Cannot be undone (create new backup first!)
-
-#### Search Challenges/Stories
-```
-Challenges/Stories → Search bar → Type name
-```
-- Searches by challenge/story name
-- Filters results in real-time
-- Case-insensitive
-
-#### Filter by Location
-```
-Challenges/Stories/Escalations → Location tabs
-```
-- Click location name to filter
-- "All" shows everything
-- Results update instantly
+### Navigation
+- **Dashboard** - Overview and quick actions
+- **Profile** - Edit XP, level, and stats
+- **Locations** - Manage location mastery
+- **Challenges** - Complete challenges
+- **Stories** - Complete mission stories
+- **Escalations** - Complete escalations
+- **Settings** - Configure paths and backups
 
 ---
 
-## 📡 API Documentation
+## API Reference
 
-Full API documentation available at: [`docs/API.md`](https://github.com/cry4pt/Peacock-Save-Editor/blob/main/webapp/docs/API.md)
+### Endpoints
 
-### Quick Reference
-
-#### Get Profile
 ```http
-GET /api/profile/:id
+GET  /api/profile/:id              # Get profile data
+POST /api/profile/:id/update       # Update profile
+POST /api/unlock/all               # Unlock all content
+POST /api/unlock/content           # Complete profile
+GET  /api/challenges               # Get challenges
+GET  /api/locations                # Get locations
+GET  /api/stories                  # Get mission stories
+GET  /api/escalations              # Get escalations
+POST /api/backup/create            # Create backup
+POST /api/backup/restore           # Restore backup
 ```
-
-#### Update Profile
-```http
-POST /api/profile/:id/update
-Body: { level: 7000, xp: 123456, ... }
-```
-
-#### Unlock All Content
-```http
-POST /api/unlock/all
-Body: { profileId: "xxx" }
-```
-
-#### Complete Profile
-```http
-POST /api/unlock/content
-Body: { profileId: "xxx" }
-```
-
-#### Get Challenges
-```http
-GET /api/challenges?profileId=xxx
-```
-
-#### Get Locations
-```http
-GET /api/locations?profileId=xxx
-```
-
-#### Create Backup
-```http
-POST /api/backup/create
-Body: { profileId: "xxx", name: "My Backup" }
-```
-
-See [`docs/API.md`](https://github.com/cry4pt/Peacock-Save-Editor/blob/main/webapp/docs/API.md) for complete documentation.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 webapp/
-├── app/                          # Next.js App Router
-│   ├── api/                      # API Routes
-│   │   ├── activity/             # Activity logging
-│   │   ├── backup/               # Backup & restore
-│   │   ├── profile/              # Profile management
-│   │   ├── unlock/               # Unlock operations
-│   │   ├── challenges/           # Challenge data
-│   │   ├── escalations/          # Escalation data
-│   │   ├── locations/            # Location data
-│   │   ├── stories/              # Story data
-│   │   └── settings/             # Settings management
-│   ├── challenges/page.tsx       # Challenges page
-│   ├── escalations/page.tsx      # Escalations page
-│   ├── locations/page.tsx        # Locations page
-│   ├── profile/page.tsx          # Profile editor page
-│   ├── settings/page.tsx         # Settings page
-│   ├── stories/page.tsx          # Stories page
-│   ├── layout.tsx                # Root layout
-│   └── page.tsx                  # Dashboard
-├── components/                   # React Components
-│   ├── ui/                       # shadcn/ui components
-│   ├── challenges.tsx            # Challenge list component
-│   ├── dashboard.tsx             # Dashboard component
-│   ├── escalations.tsx           # Escalations component
-│   ├── locations.tsx             # Locations component
-│   ├── profile.tsx               # Profile editor component
-│   ├── settings.tsx              # Settings component
-│   ├── sidebar.tsx               # Navigation sidebar
-│   └── stories.tsx               # Stories component
-├── lib/                          # Utility functions
-│   ├── constants.ts              # Game constants
-│   └── utils.ts                  # Helper functions
-├── public/                       # Static files
-│   └── localization.json         # Challenge/story names
-├── scripts/                      # Batch helper scripts
-│   ├── dev.bat                   # Start dev server
-│   ├── build.bat                 # Build for production
-│   ├── start.bat                 # Start production server
-│   ├── check.bat                 # Type check
-│   ├── update-localization.bat   # Update localization
-│   └── clean.bat                 # Clean build files
-├── styles/                       # Global styles
-│   └── globals.css               # Tailwind CSS
-├── install.bat                   # Automated installer
-├── package.json                  # Dependencies
-├── tsconfig.json                 # TypeScript config
-├── next.config.mjs               # Next.js config
-├── tailwind.config.ts            # Tailwind config
-└── README.md                     # This file
+├── app/                    # Next.js App Router
+│   ├── api/                # API routes
+│   ├── challenges/         # Challenges page
+│   ├── escalations/        # Escalations page
+│   ├── locations/          # Locations page
+│   ├── profile/            # Profile editor
+│   ├── settings/           # Settings page
+│   ├── stories/            # Stories page
+│   ├── layout.tsx          # Root layout
+│   └── page.tsx            # Dashboard
+├── components/             # React components
+│   ├── ui/                 # shadcn/ui components
+│   └── *.tsx               # Feature components
+├── lib/                    # Utilities
+├── public/                 # Static files
+│   └── localization.json   # Challenge/story names
+├── scripts/                # Helper scripts
+└── install.bat             # Automated installer
 ```
 
 ---
 
-## 🛠️ Development
+## Development
 
 ### Tech Stack
-- **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript 5.9
-- **UI Library**: React 19
-- **Styling**: Tailwind CSS 4
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Runtime**: Bun
+- **Styling**: Tailwind CSS
 - **Components**: shadcn/ui + Radix UI
 - **Icons**: Lucide React
-- **Data Fetching**: SWR
-- **Forms**: React Hook Form + Zod
 
-### Development Commands
+### Commands
 
 ```bash
-# Start development server (hot reload)
-pnpm run dev
-
-# Type check
-pnpm run check
-
-# Build for production
-pnpm run build
-
-# Start production server
-pnpm run start
-
-# Update localization data
-pnpm run extract-localization
+bun run dev                 # Development server
+bun run build               # Production build
+bun run start               # Start production
+bun run check               # TypeScript check
+bun run extract-localization # Update challenge names
 ```
 
-### Using Helper Scripts (Windows)
+### Windows Scripts
 
 ```bash
-# Development mode
-scripts\dev.bat
-
-# Build and start production
-scripts\build.bat
-scripts\start.bat
-
-# Type checking
-scripts\check.bat
-
-# Update challenge names
-scripts\update-localization.bat
-
-# Clean build artifacts
-scripts\clean.bat
+scripts\dev.bat             # Start dev server
+scripts\build.bat           # Build production
+scripts\start.bat           # Start production
+scripts\check.bat           # Type check
+scripts\clean.bat           # Clean build files
 ```
-
-### Adding New Features
-
-1. **Create API route** in `app/api/`
-2. **Create component** in `components/`
-3. **Add page** in `app/` (if needed)
-4. **Update types** in component files
-5. **Test locally** with `pnpm run dev`
-
-### Code Style
-
-- Use TypeScript strict mode
-- Follow React best practices
-- Use Tailwind for styling
-- Keep components modular
-- Add JSDoc comments for complex functions
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
-### Webapp won't start
-
-**Problem**: `Error: Could not find Peacock installation`
-
-**Solution**:
+### "Could not find Peacock installation"
 1. Go to Settings page
-2. Enter your Peacock path manually
-3. Click "Save Settings"
-4. Restart the webapp
+2. Enter Peacock path manually
+3. Save and restart
 
----
-
-**Problem**: `Error: Could not find a production build`
-
-**Solution**:
+### "Could not find a production build"
 ```bash
-pnpm run build
-pnpm run start
+bun run build
+bun run start
 ```
 
-Or use development mode:
+### Challenges show as IDs
 ```bash
-pnpm run dev
+bun run extract-localization
 ```
 
----
-
-### Localization not working
-
-**Problem**: Challenges/stories show as IDs (e.g., `UI_CHALLENGES_...`)
-
-**Solution**:
+### Port 3000 in use
 ```bash
-pnpm run extract-localization
-```
-
-This extracts names from your Peacock installation.
-
----
-
-### Changes not saving
-
-**Problem**: Profile changes don't persist
-
-**Solution**:
-1. Check that Peacock server is NOT running
-2. Verify Peacock path in Settings
-3. Check file permissions for Peacock folder
-4. Try creating a backup first
-
----
-
-### Port already in use
-
-**Problem**: `Error: Port 3000 is already in use`
-
-**Solution**:
-```bash
-# Find process using port 3000
+# Find process
 netstat -ano | findstr :3000
 
-# Kill the process (replace PID with actual number)
+# Kill process
 taskkill /PID <PID> /F
 ```
 
-Or change the port in `package.json`:
-```json
-"dev": "next dev -p 3001"
-```
-
----
-
 ### Dependencies won't install
-
-**Problem**: `pnpm install` fails
-
-**Solution**:
 ```bash
-# Clear pnpm cache
-pnpm store prune
-
-# Delete node_modules and lockfile
-rm -rf node_modules pnpm-lock.yaml
-
-# Reinstall
-pnpm install
+rm -rf node_modules bun.lockb
+bun install
 ```
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! Here's how you can help:
-
-### Reporting Bugs
-1. Check existing issues first
-2. Create a new issue with:
-   - Clear description
-   - Steps to reproduce
-   - Expected vs actual behavior
-   - Screenshots if applicable
-
-### Suggesting Features
-1. Open an issue with `[Feature Request]` prefix
-2. Describe the feature and use case
-3. Explain why it would be useful
-
-### Pull Requests
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes
-4. Test thoroughly
-5. Commit: `git commit -m 'Add amazing feature'`
-6. Push: `git push origin feature/amazing-feature`
-7. Open a Pull Request
-
-### Development Guidelines
-- Follow existing code style
-- Add comments for complex logic
-- Update documentation
-- Test on Windows (primary platform)
+2. Create feature branch: `git checkout -b feature/amazing-feature`
+3. Make changes and test
+4. Commit: `git commit -m 'Add amazing feature'`
+5. Push: `git push origin feature/amazing-feature`
+6. Open Pull Request
 
 ---
 
-## 📄 License
+## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- **Peacock Team** - For the amazing HITMAN server
+- **Peacock Team** - For the HITMAN server
 - **IOI Interactive** - For HITMAN World of Assassination
-- **shadcn/ui** - For the beautiful component library
-- **Vercel** - For Next.js framework
+- **shadcn/ui** - Component library
+- **Vercel** - Next.js framework
 
 ---
 
-## 📞 Support
+## Support
 
-- **Issues**: [GitHub Issues](https://github.com/cry4pt/Peacock-Save-Editor/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/cry4pt/Peacock-Save-Editor/discussions)
-- **Peacock Discord**: [Join here](https://thepeacockproject.org/discord)
-
----
-
-## 🗺️ Roadmap
-
-### Planned Features
-- [ ] Import/Export profiles
-- [ ] Challenge statistics dashboard
-- [ ] Custom challenge presets
-- [ ] Leaderboard integration
-- [ ] Mobile-responsive design improvements
-- [ ] Multi-language support
-- [ ] Dark/Light theme toggle
-- [ ] Advanced search filters
-- [ ] Batch operations UI
-- [ ] Profile comparison tool
-
-### Under Consideration
-- [ ] Cloud backup sync
-- [ ] Profile sharing
-- [ ] Achievement tracker
-- [ ] Custom loadout presets
-- [ ] Mission planner
+- [GitHub Issues](https://github.com/cry4pt/Peacock-Save-Editor/issues)
+- [Peacock Discord](https://thepeacockproject.org/discord)
 
 ---
 
 <div align="center">
 
-**Made with ❤️ for the HITMAN community**
+**Made for the HITMAN community**
 
-⭐ Star this repo if you find it useful!
-
-[Report Bug](https://github.com/cry4pt/Peacock-Save-Editor/issues) • [Request Feature](https://github.com/cry4pt/Peacock-Save-Editor/issues)
+[Report Bug](https://github.com/cry4pt/Peacock-Save-Editor/issues) | [Request Feature](https://github.com/cry4pt/Peacock-Save-Editor/issues)
 
 </div>
